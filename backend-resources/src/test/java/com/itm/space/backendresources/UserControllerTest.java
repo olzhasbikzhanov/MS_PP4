@@ -2,6 +2,7 @@ package com.itm.space.backendresources;
 
 import com.itm.space.backendresources.api.request.UserRequest;
 import com.itm.space.backendresources.api.response.UserResponse;
+import com.itm.space.backendresources.exception.BackendResourcesException;
 import com.itm.space.backendresources.mapper.UserMapper;
 import org.junit.jupiter.api.Test;
 import org.keycloak.admin.client.Keycloak;
@@ -17,6 +18,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.test.context.support.WithMockUser;
 
 import javax.ws.rs.WebApplicationException;
@@ -35,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @WithMockUser(username = "user", password = "user", authorities = "ROLE_MODERATOR")
-public class ClassTest extends BaseIntegrationTest {
+public class UserControllerTest extends BaseIntegrationTest {
 
     @MockBean
     private Keycloak keycloak;
@@ -70,7 +72,7 @@ public class ClassTest extends BaseIntegrationTest {
     @Mock
     private List<GroupRepresentation> userGroups;
 
-    UUID id = UUID.randomUUID();
+    private final UUID id = UUID.randomUUID();
 
     @Mock
     private UserMapper userMapper;
@@ -106,7 +108,7 @@ public class ClassTest extends BaseIntegrationTest {
     public void badCreateTest() throws Exception {
         when(keycloak.realm(anyString())).thenReturn(realmResource);
         when(realmResource.users()).thenReturn(usersResource);
-        when(usersResource.create(ArgumentMatchers.any(UserRepresentation.class))).thenThrow(new WebApplicationException());
+        when(usersResource.create(ArgumentMatchers.any(UserRepresentation.class))).thenReturn(Response.status(Response.Status.INTERNAL_SERVER_ERROR).build());
 
         mvc.perform(requestWithContent(post("/api/users"), userRequest))
                 .andExpect(status().is5xxServerError())
@@ -134,7 +136,7 @@ public class ClassTest extends BaseIntegrationTest {
     public void badGetUserByIdTest() throws Exception {
         when(keycloak.realm(anyString())).thenReturn(realmResource);
         when(realmResource.users()).thenReturn(usersResource);
-        when(usersResource.get(String.valueOf(id))).thenThrow(new RuntimeException());
+        when(usersResource.get(String.valueOf(id))).thenThrow(new BackendResourcesException("test exception", HttpStatus.INTERNAL_SERVER_ERROR));
 
         mvc.perform(get("/api/users/{id}", id))
                 .andExpect(status().is5xxServerError())
